@@ -76,7 +76,7 @@ AppDelegate *_sharedDelegate;
 								   (CFStringRef)NSLocalizedString(@"OPEN_AT_LOGIN", nil),
 								   (CFStringRef)NSLocalizedString(@"CANCEL", nil), NULL, &result);
 	
-	bool open_at_login = false;
+	BOOL open_at_login = false;
 	if (result == kCFUserNotificationDefaultResponse) {
 		SMLoginItemSetEnabled((CFStringRef)@"com.bonzaiapps.loader", YES); // should return YES
 		open_at_login = true;
@@ -302,11 +302,21 @@ __weak SourceRecord *prev_source;
 
 - (void)toggleOpenAtLogin:(id)sender {
 	NSUserDefaults *preferences = [NSUserDefaults standardUserDefaults];
-	bool open_at_login = ![preferences boolForKey:@"Open at Login"];
+	BOOL open_at_login = ![preferences boolForKey:@"Open at Login"];
 	[preferences setBool:open_at_login forKey:@"Open at Login"];
 	[preferences synchronize];
 	SMLoginItemSetEnabled((CFStringRef)@"com.bonzaiapps.loader", open_at_login); // should return YES
 }
+
+- (void)toggleAnimate:(id)sender {
+    NSUserDefaults *preferences = [NSUserDefaults standardUserDefaults];
+    BOOL noAnimation = ![preferences boolForKey:@"Cancel Animation"];
+    [preferences setBool:noAnimation forKey:@"Cancel Animation"];
+    [preferences synchronize];
+    if (noAnimation)
+        [self stopAnimating];
+}
+
 
 - (NSAttributedString *)wrappedText:(NSString *)text width:(float)max_width {
 	NSMutableParagraphStyle* pathStyle = [[NSMutableParagraphStyle alloc] init];
@@ -568,6 +578,13 @@ __weak SourceRecord *prev_source;
 		[item setTarget:self];
 		[item setAction:@selector(toggleOpenAtLogin:)];
 		[menu addItem:item];
+        
+        item = [[NSMenuItem alloc] init];
+        [item setTitle:NSLocalizedString(@"ANIMATE", nil)];
+        if (![preferences boolForKey:@"Cancel Animation"]) [item setState:NSOnState];
+        [item setTarget:self];
+        [item setAction:@selector(toggleAnimate:)];
+        [menu addItem:item];
 		
 		item = [[NSMenuItem alloc] init];
 		[item setTitle:NSLocalizedString(@"QUIT", nil)];
@@ -733,7 +750,7 @@ BOOL _trackMouse_replacement(id self, SEL _cmd, NSEvent *theEvent, NSRect cellFr
 }
 
 - (void)startAnimating {
-	if (animating) return;
+	if (animating || [[NSUserDefaults standardUserDefaults] boolForKey:@"Cancel Animation"]) return;
 	animating = true;
 	if (animator == nil) animator = [NSTimer scheduledTimerWithTimeInterval:0.1 target:self selector:@selector(updateAnimation) userInfo:nil repeats:YES];
 }
